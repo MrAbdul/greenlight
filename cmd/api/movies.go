@@ -14,7 +14,7 @@ func (app *application) createMovieHandler(w http.ResponseWriter, r *http.Reques
 func (app *application) showMovieHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := app.readIDParam(r)
 	if err != nil {
-		http.NotFound(w, r)
+		app.notFoundResponse(w, r)
 		return
 	}
 	//an instance of the movie struct with the id we got from the url and some dummy data, notice that we don't set a value for the year
@@ -32,8 +32,7 @@ func (app *application) showMovieHandler(w http.ResponseWriter, r *http.Request)
 
 	err = app.writeJSON(w, http.StatusOK, envelope{"movie": movie}, nil)
 	if err != nil {
-		app.logger.Error(err.Error())
-		http.Error(w, "The sevrer encounterd an error and couldn't process your request", http.StatusInternalServerError)
+		app.serverErrorResponse(w, r, err)
 	}
 	//otherwise, interpolate the movie id in a placeholder responose
 }
