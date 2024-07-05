@@ -34,5 +34,6 @@ func (app *application) showMovieHandler(w http.ResponseWriter, r *http.Request)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
+
 	//otherwise, interpolate the movie id in a placeholder responose
 }
