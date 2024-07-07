@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"strings"
 )
 
 // Retrieve the "id" URL parameter from the current request context, then convert it to
@@ -62,14 +63,22 @@ func (app *application) writeJSON(w http.ResponseWriter, status int, data envelo
 }
 
 func (app *application) readJSON(w http.ResponseWriter, r *http.Request, dst any) error {
-	// Decode the request body into the target destination.
-	err := json.NewDecoder(r.Body).Decode(dst)
+	//we will set a max byte
+	maxBytes := 10_084_576
+	r.Body = http.MaxBytesReader(w, r.Body, int64(maxBytes))
+	//init the json decoder and call the disallow unknown fields,
+	dec := json.NewDecoder(r.Body)
+	//it will raise an error if an unkwown field gets decoaded
+	dec.DisallowUnknownFields()
+	err := dec.Decode(dst)
+
 	if err != nil {
 		// If there is an error during decoding, start the triage...
 		var syntaxError *json.SyntaxError
 		var unmarshalTypeError *json.UnmarshalTypeError
 		var invalidUnmarshalError *json.InvalidUnmarshalError
-
+		//max byte error var
+		var maxByteError *http.MaxBytesError
 		switch {
 		// Use the errors.As() function to check whether the error has the type
 		// *json.SyntaxError. If it does, then return a plain-english error message
@@ -99,6 +108,14 @@ func (app *application) readJSON(w http.ResponseWriter, r *http.Request, dst any
 		// instead.
 		case errors.Is(err, io.EOF):
 			return errors.New("body must not be empty")
+		//if the json contains a field which cannot be mapped to the target, we will get an error
+		case strings.HasPrefix(err.Error(), "json: unknown field"):
+			fieldName := strings.TrimPrefix(err.Error(), "json: unknown field")
+			return fmt.Errorf("body contains unknown field %q", fieldName)
+
+		//if the error as saya that we have max bytes, then we exceeded the max size
+		case errors.As(err, &maxByteError):
+			return fmt.Errorf("body must not be larger than %d", maxByteError.Limit)
 
 		// A json.InvalidUnmarshalError error will be returned if we pass something
 		// that is not a non-nil pointer to Decode(). We catch this and panic,
@@ -112,6 +129,14 @@ func (app *application) readJSON(w http.ResponseWriter, r *http.Request, dst any
 		default:
 			return err
 		}
+	}
+	// Call Decode() again, using a pointer to an empty anonymous struct as the
+	// destination. If the request body only contained a single JSON value this will
+	// return an io.EOF error. So if we get anything else, we know that there is
+	// additional data in the request body and we return our own custom error message.
+	err = dec.Decode(&struct{}{})
+	if !errors.Is(err, io.EOF) {
+		return errors.New("body must only contain a single JSON value")
 	}
 
 	return nil
