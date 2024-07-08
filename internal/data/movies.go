@@ -75,7 +75,9 @@ func (m MovieModel) Get(id int64) (*Movie, error) {
 
 // Add a placeholder method for updating a specific record in the movies table.
 func (m MovieModel) Update(movie *Movie) error {
-	return nil
+	stmt := `UPDATE movies SET title =$1, year=$2, runtime =$3, genres=$4, version= version+1 WHERE id=$5 RETURNING version`
+	args := []any{movie.Title, movie.Year, movie.Runtime, pq.Array(movie.Genres), movie.ID}
+	return m.DB.QueryRow(stmt, args...).Scan(&movie.Version)
 }
 
 // Add a placeholder method for deleting a specific record from the movies table.
