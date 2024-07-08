@@ -72,7 +72,7 @@ func main() {
 
 	// Also log a message to say that the connection pool has been successfully
 	// established.
-	logger.Info("database connection pool established with ", "maxOpenConns", cfg.db.maxOpenConns, " maxIdleConns", cfg.db.maxIdleConns, " maxIdleTime", cfg.db.maxIdleTime)
+	logger.Info("database connection pool established with:", "maxOpenConns", cfg.db.maxOpenConns, "maxIdleConns", cfg.db.maxIdleConns, "maxIdleTime", cfg.db.maxIdleTime)
 	//declare instance of app strcut containg the config struct and logger
 	app := &application{
 		config: cfg,

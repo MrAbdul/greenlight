@@ -16,7 +16,7 @@ var ErrInvalidRuntimeFormat = errors.New("invalid runtime format")
 
 func (r *Runtime) MarshalJSON() ([]byte, error) {
 	//generate a string containg the movie runtime in the required format
-	jsonValue := fmt.Sprintf("%d mins", r)
+	jsonValue := fmt.Sprintf("%d mins", *r)
 	//use the strconv.Quote function on the string to wrap it in double quotes. it needs to be surronded by double quotes in order to be a valid *JSON string*
 	quotedJSONValue := strconv.Quote(jsonValue)
 	//convert it to a byte slice and return it
