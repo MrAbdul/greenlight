@@ -103,10 +103,10 @@ func (app *application) updateMovieHandler(w http.ResponseWriter, r *http.Reques
 		}
 	}
 	var input struct {
-		Title   string       `json:"title"`
-		Year    int32        `json:"year"`
-		Runtime data.Runtime `json:"runtime"`
-		Genres  []string     `json:"genres"`
+		Title   *string       `json:"title"`   // This will be nil if there is no corresponding key in the JSON.
+		Year    *int32        `json:"year"`    // Likewise...
+		Runtime *data.Runtime `json:"runtime"` // Likewise...
+		Genres  []string      `json:"genres"`  // We don't need to change this because slices already have the zero-value nil.
 	}
 	// Use the new readJSON() helper to decode the request body into the input struct.
 	// If this returns an error we send the client the error message along with a 400
@@ -117,10 +117,24 @@ func (app *application) updateMovieHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	movie.Title = input.Title
-	movie.Year = input.Year
-	movie.Runtime = input.Runtime
-	movie.Genres = input.Genres
+	// If the input.Title value is nil then we know that no corresponding "title" key/
+	// value pair was provided in the JSON request body. So we move on and leave the
+	// movie record unchanged. Otherwise, we update the movie record with the new title
+	// value. Importantly, because input.Title is a now a pointer to a string, we need
+	// to dereference the pointer using the * operator to get the underlying value
+	// before assigning it to our movie record.
+	if input.Title != nil {
+		movie.Title = *input.Title
+	}
+	if input.Year != nil {
+		movie.Year = *input.Year
+	}
+	if input.Runtime != nil {
+		movie.Runtime = *input.Runtime
+	}
+	if input.Genres != nil {
+		movie.Genres = input.Genres // Note that we don't need to dereference a slice.
+	}
 	v := validator.New()
 	data.ValidateMovie(v, movie)
 	if !v.Valid() {
