@@ -94,7 +94,10 @@ func main() {
 	logger.Info("rate limiter settings:", "rps", cfg.limiter.rps, "burst", cfg.limiter.burst, "Enabled", cfg.limiter.enabled)
 
 	err = app.serve()
-	logger.Error(err.Error())
+	if err != nil {
+		logger.Error(err.Error())
+
+	}
 	os.Exit(1)
 }
 
