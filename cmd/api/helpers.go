@@ -172,3 +172,9 @@ func (app *application) readCSV(qs url.Values, key string, defaultValue []string
 	csv := strings.Split(s, ",")
 	return csv
 }
+
+func (app *application) rateLimitExceededResponse(w http.ResponseWriter, r *http.Request) {
+	message := "rate limit exceeded"
+	app.errorResponse(w, r, http.StatusTooManyRequests, message)
+
+}
