@@ -3,7 +3,9 @@ package main
 import (
 	"fmt"
 	"golang.org/x/time/rate"
+	"net"
 	"net/http"
+	"sync"
 )
 
 func (app *application) recoverPanic(next http.Handler) http.Handler {
@@ -33,15 +35,35 @@ func (app *application) recoverPanic(next http.Handler) http.Handler {
 }
 
 func (app *application) rateLimit(next http.Handler) http.Handler {
-	//init a new rate limiter which allows an average of 2 requests/sec with a max burst of 4
-	limiter := rate.NewLimiter(2, 4)
+	//note thaat whatever is defined here before the return is only init once one the middleware is first created
+	var (
+		mu      sync.Mutex
+		clients = make(map[string]*rate.Limiter)
+	)
+
 	//this is a closure which will close over the limiter var
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		//call limiter.allow to see if the request is permitted, if not then we call ratelmitexceededResponse helper
-		if !limiter.Allow() {
+		//extract the clients ip address from the request
+		ip, _, err := net.SplitHostPort(r.RemoteAddr)
+		if err != nil {
+			app.serverErrorResponse(w, r, err)
+			return
+		}
+		//lock the mutex to prevent this code from being executed concurrently
+		mu.Lock()
+		//check if the ip already exists in the map, if not init a new rate limiter and add the ip address and limiter to it
+		if _, found := clients[ip]; !found {
+			clients[ip] = rate.NewLimiter(2, 4)
+		}
+		//call the allow on the rate limiter for the current ip address, if not allowed unlock the mutex and send a 429
+		if !clients[ip].Allow() {
+			mu.Unlock()
 			app.rateLimitExceededResponse(w, r)
 			return
 		}
+		//very important, we must unlock the mutext before caling the next handler in the chain,
+		//we DONT use defer here because that would mean the mutex isn't unlocked until all the handlers of this middleware have also returned
+		mu.Unlock()
 		next.ServeHTTP(w, r)
 	})
 }
