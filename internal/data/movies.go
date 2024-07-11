@@ -119,7 +119,7 @@ func (m MovieModel) Delete(id int64) error {
 	}
 	return nil
 }
-func (m MovieModel) GetAll(title string, generes []string, filters Filters) ([]*Movie, error) {
+func (m MovieModel) GetAll(title string, generes []string, filters Filters) ([]*Movie, Metadata, error) {
 	/*
 		This SQL query is designed so that each of the filters behaves like it is ‘optional’. For example, the condition
 		(LOWER(title) = LOWER($1) OR $1 = '') will evaluate as true if the placeholder parameter $1 is a case-insensitive
@@ -149,7 +149,7 @@ func (m MovieModel) GetAll(title string, generes []string, filters Filters) ([]*
 	   // consistent ordering.
 	*/
 	stmt := fmt.Sprintf(`
-        SELECT id, created_at, title, year, runtime, genres, version
+        SELECT count(*) OVER(), id, created_at, title, year, runtime, genres, version
 		FROM movies
 		WHERE (to_tsvector('simple', title) @@ plainto_tsquery('simple', $1) OR $1 = '') 
 		AND (genres @> $2 OR $2 = '{}')     
@@ -165,15 +165,18 @@ func (m MovieModel) GetAll(title string, generes []string, filters Filters) ([]*
 	args := []any{title, pq.Array(generes), filters.limit(), filters.offset()}
 	rows, err := m.DB.QueryContext(ctx, stmt, args...)
 	if err != nil {
-		return nil, err
+		return nil, Metadata{}, err
 	}
 	//defer rows.close to ensure resultset is closed
 	defer rows.Close()
+	//declare a totalRecords Var
+	totalRecords := 0
 	movies := []*Movie{}
 	for rows.Next() {
 		var movie Movie
 		//scan the value into the struct
 		err := rows.Scan(
+			&totalRecords, //Scan the count from the window function
 			&movie.ID,
 			&movie.CreatedAt,
 			&movie.Title,
@@ -182,13 +185,14 @@ func (m MovieModel) GetAll(title string, generes []string, filters Filters) ([]*
 			pq.Array(&movie.Genres),
 			&movie.Version)
 		if err != nil {
-			return nil, err
+			return nil, Metadata{}, err
 		}
 		movies = append(movies, &movie)
 	}
 	//when the rows next loop is done, call rows.err to retrive any errors
 	if err = rows.Err(); err != nil {
-		return nil, err
+		return nil, Metadata{}, err
 	}
-	return movies, nil
+	metadata := calculateMetadata(totalRecords, filters.Page, filters.PageSize)
+	return movies, metadata, nil
 }
