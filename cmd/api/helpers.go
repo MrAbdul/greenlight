@@ -183,8 +183,12 @@ func (app *application) rateLimitExceededResponse(w http.ResponseWriter, r *http
 // This background() helper leverages the fact that Go has first-class functions,
 // which means that functions can be assigned to variables and passed as parameters to other functions.
 func (app *application) background(fn func()) {
+	//increment the waitgroup counter
+	app.wg.Add(1)
 	// Launch a background goroutine.
 	go func() {
+		//defer to decrenebt the waitgroup counter before the goroutine returns
+		defer app.wg.Done()
 		// Recover any panic.
 		/*
 			The code running in the background goroutine forms a closure over the user and app variables.
