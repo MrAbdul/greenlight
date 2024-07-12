@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"greenlight.abdulalsh.com/internal/data"
 	"greenlight.abdulalsh.com/internal/validator"
 	"net/http"
@@ -63,6 +64,14 @@ func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 
 			In our case we aren’t changing the value of these variables in any way, so this behavior won’t cause us any issues. But it is important to keep in mind.
 		*/
+		//****Recovering panic****//
+		// Run a deferred function which uses recover() to catch any panic, and log an
+		// error message instead of terminating the application.
+		defer func() {
+			if err := recover(); err != nil {
+				app.logger.Error(fmt.Sprintf("%v", err))
+			}
+		}()
 		err = app.mailer.Send(user.Email, "user_welcome.gohtml", user)
 		if err != nil {
 			// Importantly, if there is an error sending the email then we use the
