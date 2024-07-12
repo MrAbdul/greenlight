@@ -178,3 +178,32 @@ func (app *application) rateLimitExceededResponse(w http.ResponseWriter, r *http
 	app.errorResponse(w, r, http.StatusTooManyRequests, message)
 
 }
+
+// The background() helper accepts an arbitrary function as a parameter.
+// This background() helper leverages the fact that Go has first-class functions,
+// which means that functions can be assigned to variables and passed as parameters to other functions.
+func (app *application) background(fn func()) {
+	// Launch a background goroutine.
+	go func() {
+		// Recover any panic.
+		/*
+			The code running in the background goroutine forms a closure over the user and app variables.
+			It’s important to be aware that these ‘closed over’ variables are not scoped to the background goroutine,
+			which means that any changes you make to them will be reflected in the rest of your codebase.
+			For a simple example of this, see the following https://go.dev/play/p/eTz1xBm4W2a
+
+			In our case we aren’t changing the value of these variables in any way, so this behavior won’t cause us any issues. But it is important to keep in mind.
+		*/
+		//****Recovering panic****//
+		// Run a deferred function which uses recover() to catch any panic, and log an
+		// error message instead of terminating the application.
+		defer func() {
+			if err := recover(); err != nil {
+				app.logger.Error(fmt.Sprintf("%v", err))
+			}
+		}()
+
+		// Execute the arbitrary function that we passed as the parameter.
+		fn()
+	}()
+}
