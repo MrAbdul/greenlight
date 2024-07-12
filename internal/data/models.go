@@ -18,6 +18,7 @@ var (
 type Models struct {
 	Movies MovieModel
 	Users  UserModel
+	Token  TokenModel
 }
 
 // For ease of use, we also add a New() method which returns a Models struct containing
@@ -26,5 +27,6 @@ func NewModels(db *sql.DB) Models {
 	return Models{
 		Movies: MovieModel{DB: db},
 		Users:  UserModel{DB: db},
+		Token:  TokenModel{DB: db},
 	}
 }
