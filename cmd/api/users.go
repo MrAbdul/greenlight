@@ -94,7 +94,7 @@ func (app *application) activateUserHandler(w http.ResponseWriter, r *http.Reque
 	input.ActivationToken = r.PostForm.Get("token")
 
 	v := validator.New()
-	if data.ValidateTokenPlaintext(v, input.ActivationToken); !v.Valid() {
+	if data.ValidateTokenPlaintext(v, input.ActivationToken, data.ScopeActivation); !v.Valid() {
 		app.failedValidationResponse(w, r, v.Errors)
 		return
 	}

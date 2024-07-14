@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"greenlight.abdulalsh.com/internal/validator"
 	"time"
+	"unicode/utf8"
 )
 
 // Define constants for the token scope. For now we just define the scope "activation"
@@ -16,6 +17,10 @@ import (
 const (
 	ScopeActivation     = "activation"
 	ScopeAuthentication = "authentication"
+)
+const (
+	ActivationTokenLen     = 6
+	AuthenticationTokenLen = 32
 )
 
 // Define a Token struct to hold the data for an individual token. This includes the
@@ -75,9 +80,15 @@ func generateToken(userID int64, ttl time.Duration, length int, scope string) (*
 }
 
 // Check that the plaintext token has been provided and is exactly 26 bytes long.
-func ValidateTokenPlaintext(v *validator.Validator, tokenPlaintext string) {
+func ValidateTokenPlaintext(v *validator.Validator, tokenPlaintext string, scope string) {
 	v.Check(tokenPlaintext != "", "token", "must be provided")
-	v.Check(len(tokenPlaintext) == 6, "token", "must be 6 bytes long")
+	if scope == ScopeActivation {
+		v.Check(utf8.RuneCountInString(tokenPlaintext) == ActivationTokenLen, "token", "must be 6 characters long")
+	} else if scope == ScopeAuthentication {
+		v.Check(utf8.RuneCountInString(tokenPlaintext) == AuthenticationTokenLen, "token", "must be 32 characters long")
+	} else {
+		v.AddError("token", "scope not defined")
+	}
 }
 
 // Define the TokenModel type.
