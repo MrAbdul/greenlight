@@ -8,45 +8,25 @@ import (
 	"encoding/base32"
 	"fmt"
 	"greenlight.abdulalsh.com/internal/validator"
-	"math/big"
-	"strconv"
 	"time"
 )
 
 // Define constants for the token scope. For now we just define the scope "activation"
 // but we'll add additional scopes later in the book.
 const (
-	ScopeActivation = "activation"
+	ScopeActivation     = "activation"
+	ScopeAuthentication = "authentication"
 )
 
 // Define a Token struct to hold the data for an individual token. This includes the
 // plaintext and hashed versions of the token, associated user ID, expiry time and
 // scope.
 type Token struct {
-	Plaintext string
-	Hash      []byte
-	UserID    int64
-	Expiry    time.Time
-	Scope     string
-}
-
-func generateRandomASCIIString(length int) (string, error) {
-	result := ""
-	for {
-		if len(result) >= length {
-			return result, nil
-		}
-		num, err := rand.Int(rand.Reader, big.NewInt(int64(127)))
-		if err != nil {
-			return "", err
-		}
-		n := num.Int64()
-		// Make sure that the number/byte/letter is inside
-		// the range of printable ASCII characters (excluding space and DEL)
-		if n > 32 && n < 127 {
-			result += strconv.FormatInt(n, 10)
-		}
-	}
+	Plaintext string    `json:"token"`
+	Hash      []byte    `json:"-"`
+	UserID    int64     `json:"-"`
+	Expiry    time.Time `json:"expiry"`
+	Scope     string    `json:"-"`
 }
 
 func generateToken(userID int64, ttl time.Duration, length int, scope string) (*Token, error) {
@@ -60,7 +40,7 @@ func generateToken(userID int64, ttl time.Duration, length int, scope string) (*
 	}
 
 	// Initialize a zero-valued byte slice with a length of 16 bytes.
-	randomBytes := make([]byte, 6)
+	randomBytes := make([]byte, length)
 
 	// Use the Read() function from the crypto/rand package to fill the byte slice with
 	// random bytes from your operating system's CSPRNG. This will return an error if
@@ -108,7 +88,15 @@ type TokenModel struct {
 // The New() method is a shortcut which creates a new Token struct and then inserts the
 // data in the tokens table.
 func (m TokenModel) New(userID int64, ttl time.Duration, scope string) (*Token, error) {
-	token, err := generateToken(userID, ttl, 6, scope)
+	var token *Token
+	var err error
+	if scope == ScopeActivation {
+		token, err = generateToken(userID, ttl, 6, scope)
+	} else if scope == ScopeAuthentication {
+		token, err = generateToken(userID, ttl, 32, scope)
+	} else {
+		return nil, fmt.Errorf("scope must be defined")
+	}
 	if err != nil {
 		return nil, err
 	}
