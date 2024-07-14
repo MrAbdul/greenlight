@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/julienschmidt/httprouter"
+	"greenlight.abdulalsh.com/internal/data"
 	"greenlight.abdulalsh.com/ui"
 	"net/http"
 )
@@ -21,11 +22,11 @@ func (app *application) routes() http.Handler {
 	//static files
 	router.ServeFiles("/ui/*filepath", http.FS(ui.Files))
 	router.HandlerFunc(http.MethodGet, "/v1/healthcheck", app.healthcheckHandler)
-	router.HandlerFunc(http.MethodPost, "/v1/movies", app.requireActivateduser(app.createMovieHandler))
-	router.HandlerFunc(http.MethodGet, "/v1/movies/:id", app.requireActivateduser(app.showMovieHandler))
-	router.HandlerFunc(http.MethodPatch, "/v1/movies/:id", app.requireActivateduser(app.updateMovieHandler))
-	router.HandlerFunc(http.MethodDelete, "/v1/movies/:id", app.requireActivateduser(app.deleteMovieHandler))
-	router.HandlerFunc(http.MethodGet, "/v1/movies", app.requireActivateduser(app.listMoviesHandler))
+	router.HandlerFunc(http.MethodPost, "/v1/movies", app.requirePermission(data.MoviesRead, app.createMovieHandler))
+	router.HandlerFunc(http.MethodGet, "/v1/movies/:id", app.requirePermission(data.MoviesWrite, app.showMovieHandler))
+	router.HandlerFunc(http.MethodPatch, "/v1/movies/:id", app.requirePermission(data.MoviesRead, app.updateMovieHandler))
+	router.HandlerFunc(http.MethodDelete, "/v1/movies/:id", app.requirePermission(data.MoviesWrite, app.deleteMovieHandler))
+	router.HandlerFunc(http.MethodGet, "/v1/movies", app.requirePermission(data.MoviesWrite, app.listMoviesHandler))
 
 	//users
 	router.HandlerFunc(http.MethodPost, "/v1/users", app.registerUserHandler)

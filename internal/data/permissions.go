@@ -6,6 +6,11 @@ import (
 	"time"
 )
 
+const (
+	MoviesRead  = "movies:read"
+	MoviesWrite = "movies:write"
+)
+
 type Permissions []string
 
 func (p Permissions) Include(code string) bool {
