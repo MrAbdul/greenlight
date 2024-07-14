@@ -1,0 +1,23 @@
+
+
+
+
+{{define "title"}}User: #    {{- /*gotype: greenlight.abdulalsh.com/cmd/api.templateData*/ -}}
+{{.User.Name}} is Active{{end}}
+
+{{define "main"}}
+    {{- /*gotype: greenlight.abdulalsh.com/cmd/api.templateData*/ -}}
+    <div class='snippet'>
+        {{with .User}}
+            <div class='metadata'>
+
+                <strong>{{.Email}}</strong>
+                <span>#{{.ID}}</span>
+            </div>
+            <pre><code>{{.Activated}}</code></pre>
+            <div class='metadata'>
+                <time>Created: {{humanDate .CreatedAt}}</time>
+            </div>
+        {{end}}
+    </div>
+{{end}}

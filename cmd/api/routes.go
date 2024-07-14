@@ -2,11 +2,15 @@ package main
 
 import (
 	"github.com/julienschmidt/httprouter"
+	"greenlight.abdulalsh.com/ui"
 	"net/http"
 )
 
 func (app *application) routes() http.Handler {
 	//init a new httprouter
+	// now we use mux.handle function to register the file server as handler for all url paths that start with /static/
+	// for matching paths, we strip the "/static" prefix before the request reaches the file server
+	//we don't need the session handling middleware for the static files
 	router := httprouter.New()
 	//we convert the notFoundResponse() helper to a http.Handler using the http.HandlerFunc() adapter.
 	//and we set it as the custom error handler for 404
@@ -14,6 +18,8 @@ func (app *application) routes() http.Handler {
 	//likewise for 405
 	router.MethodNotAllowed = http.HandlerFunc(app.methodNotAllowedResponse)
 	//we register our routes here
+	//static files
+	router.ServeFiles("/ui/*filepath", http.FS(ui.Files))
 	router.HandlerFunc(http.MethodGet, "/v1/healthcheck", app.healthcheckHandler)
 	router.HandlerFunc(http.MethodPost, "/v1/movies", app.createMovieHandler)
 	router.HandlerFunc(http.MethodGet, "/v1/movies/:id", app.showMovieHandler)
@@ -23,6 +29,7 @@ func (app *application) routes() http.Handler {
 
 	//users
 	router.HandlerFunc(http.MethodPost, "/v1/users", app.registerUserHandler)
-	router.HandlerFunc(http.MethodPut, "/v1/users/activated", app.activateUserHandler)
+	router.Handler(http.MethodPost, "/v1/users/activated", noSurf(http.HandlerFunc(app.activateUserHandler)))
+	router.Handler(http.MethodGet, "/v1/users/activate", noSurf(http.HandlerFunc(app.activateUserFormGetHandler)))
 	return app.recoverPanic(app.rateLimit(router))
 }

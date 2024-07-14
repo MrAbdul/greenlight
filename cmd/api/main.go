@@ -7,6 +7,7 @@ import (
 	_ "github.com/lib/pq"
 	"greenlight.abdulalsh.com/internal/data"
 	"greenlight.abdulalsh.com/internal/mailer"
+	"html/template"
 	"log/slog"
 	"os"
 	"sync"
@@ -56,7 +57,8 @@ type application struct {
 	// Include a sync.WaitGroup in the application struct. The zero-value for a
 	// sync.WaitGroup type is a valid, useable, sync.WaitGroup with a 'counter' value of 0,
 	// so we don't need to do anything else to initialize it before we can use it.
-	wg sync.WaitGroup
+	wg            sync.WaitGroup
+	templateCache map[string]*template.Template
 }
 
 func main() {
@@ -108,11 +110,19 @@ func main() {
 	// established.
 	logger.Info("database connection pool established with:", "maxOpenConns", cfg.db.maxOpenConns, "maxIdleConns", cfg.db.maxIdleConns, "maxIdleTime", cfg.db.maxIdleTime)
 	//declare instance of app strcut containg the config struct and logger
+	// Initialize a new session manager and configure the session lifetime.
+
+	cache, err := newTemplateCache()
+	if err != nil {
+		logger.Error("problem initializing template cache", err)
+		os.Exit(1)
+	}
 	app := &application{
-		config: cfg,
-		logger: logger,
-		models: data.NewModels(db),
-		mailer: mailer.New(cfg.smtp.host, cfg.smtp.port, cfg.smtp.username, cfg.smtp.password, cfg.smtp.sender),
+		config:        cfg,
+		logger:        logger,
+		models:        data.NewModels(db),
+		mailer:        mailer.New(cfg.smtp.host, cfg.smtp.port, cfg.smtp.username, cfg.smtp.password, cfg.smtp.sender),
+		templateCache: cache,
 	}
 
 	logger.Info("rate limiter settings:", "rps", cfg.limiter.rps, "burst", cfg.limiter.burst, "Enabled", cfg.limiter.enabled)

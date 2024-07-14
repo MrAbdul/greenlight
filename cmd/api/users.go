@@ -83,14 +83,16 @@ func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 	}
 }
 func (app *application) activateUserHandler(w http.ResponseWriter, r *http.Request) {
-	var input struct {
-		ActivationToken string `json:"token"`
-	}
-	err := app.readJSON(w, r, &input)
+	err := r.ParseForm()
 	if err != nil {
-		app.badRequestResponse(w, r, err)
+		app.clientError(w, http.StatusBadRequest)
 		return
 	}
+	var input struct {
+		ActivationToken string
+	}
+	input.ActivationToken = r.PostForm.Get("token")
+
 	v := validator.New()
 	if data.ValidateTokenPlaintext(v, input.ActivationToken); !v.Valid() {
 		app.failedValidationResponse(w, r, v.Errors)
@@ -130,9 +132,12 @@ func (app *application) activateUserHandler(w http.ResponseWriter, r *http.Reque
 		app.serverErrorResponse(w, r, err)
 		return
 	}
+	td := app.newTemplateData(r)
+	td.User = *user
+	app.render(w, r, http.StatusAccepted, "user_activated.gohtml", td)
 	// Send the updated user details to the client in a JSON response.
-	err = app.writeJSON(w, http.StatusOK, envelope{"user": user}, nil)
-	if err != nil {
-		app.serverErrorResponse(w, r, err)
-	}
+}
+
+func (app *application) activateUserFormGetHandler(w http.ResponseWriter, r *http.Request) {
+	app.render(w, r, http.StatusOK, "user_activation.gohtml", app.newTemplateData(r))
 }

@@ -1,0 +1,25 @@
+{{ define "base" }} <!-- this defines a distenced named template called base which contains the content we want to appear on every page. -->
+{{- /*gotype: snippetbox.abdulalsh.com/cmd/web.templateData*/ -}}
+<!doctype html>
+<html lang="en" xmlns="http://www.w3.org/1999/html">
+<head>
+    <meta charset="UTF-8">
+    <title>{{template  "title" . }}</title> <!-- { {template "title"} } actions denoate that we want to invoke other named template called title-->
+    {{/*now that we have our static file server, we can use it */}}
+    <link rel="stylesheet" href="/ui/static/css/main.css">
+    <link rel="shortcut icon" href="/ui/static/img/favicon.ico" type="image/x-icon">
+</head>
+<body>
+<header>
+    <h1><a href="/">Activate</a></h1>
+</header>
+{{/*{{template "nav" .}}*/}}
+<main>
+
+    {{template "main" .}} <!-- { {template "main"} } actions denoate that we want to invoke other named template called main-->
+</main>
+<footer>Powered by <a href="https://golang.org/">Go</a> in {{.CurrentYear}}</footer>
+<script src="/static/js/main.js" type="text/javascript"></script>
+</body>
+</html>
+{{end}}

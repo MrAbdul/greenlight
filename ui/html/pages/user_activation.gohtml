@@ -1,0 +1,19 @@
+{{define "title"}}Activate a new user{{end}}
+
+{{define "main"}}
+    {{- /*gotype: greenlight.abdulalsh.com/cmd/api.templateData*/ -}}
+
+    <form action='/v1/users/activated' method='POST'>
+        <!-- Include the CSRF token -->
+        <input type='hidden' name='csrf_token' value='{{.CSRFToken}}'>
+
+        <div>
+            <label>Token:</label>
+            <input type='text' name='token' placeholder="token">
+        </div>
+
+        <div>
+            <input type='submit' value='activate'>
+        </div>
+    </form>
+{{end}}

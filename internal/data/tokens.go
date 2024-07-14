@@ -6,7 +6,10 @@ import (
 	"crypto/sha256"
 	"database/sql"
 	"encoding/base32"
+	"fmt"
 	"greenlight.abdulalsh.com/internal/validator"
+	"math/big"
+	"strconv"
 	"time"
 )
 
@@ -27,7 +30,26 @@ type Token struct {
 	Scope     string
 }
 
-func generateToken(userID int64, ttl time.Duration, scope string) (*Token, error) {
+func generateRandomASCIIString(length int) (string, error) {
+	result := ""
+	for {
+		if len(result) >= length {
+			return result, nil
+		}
+		num, err := rand.Int(rand.Reader, big.NewInt(int64(127)))
+		if err != nil {
+			return "", err
+		}
+		n := num.Int64()
+		// Make sure that the number/byte/letter is inside
+		// the range of printable ASCII characters (excluding space and DEL)
+		if n > 32 && n < 127 {
+			result += strconv.FormatInt(n, 10)
+		}
+	}
+}
+
+func generateToken(userID int64, ttl time.Duration, length int, scope string) (*Token, error) {
 	// Create a Token instance containing the user ID, expiry, and scope information.
 	// Notice that we add the provided ttl (time-to-live) duration parameter to the
 	// current time to get the expiry time?
@@ -38,7 +60,7 @@ func generateToken(userID int64, ttl time.Duration, scope string) (*Token, error
 	}
 
 	// Initialize a zero-valued byte slice with a length of 16 bytes.
-	randomBytes := make([]byte, 16)
+	randomBytes := make([]byte, 6)
 
 	// Use the Read() function from the crypto/rand package to fill the byte slice with
 	// random bytes from your operating system's CSPRNG. This will return an error if
@@ -58,7 +80,10 @@ func generateToken(userID int64, ttl time.Duration, scope string) (*Token, error
 	// character. We don't need this padding character for the purpose of our tokens, so
 	// we use the WithPadding(base32.NoPadding) method in the line below to omit them.
 	token.Plaintext = base32.StdEncoding.WithPadding(base32.NoPadding).EncodeToString(randomBytes)
-
+	if len(token.Plaintext) < length {
+		return nil, fmt.Errorf("generated token is shorter than the required length")
+	}
+	token.Plaintext = token.Plaintext[:length]
 	// Generate a SHA-256 hash of the plaintext token string. This will be the value
 	// that we store in the `hash` field of our database table. Note that the
 	// sha256.Sum256() function returns an *array* of length 32, so to make it easier to
@@ -72,7 +97,7 @@ func generateToken(userID int64, ttl time.Duration, scope string) (*Token, error
 // Check that the plaintext token has been provided and is exactly 26 bytes long.
 func ValidateTokenPlaintext(v *validator.Validator, tokenPlaintext string) {
 	v.Check(tokenPlaintext != "", "token", "must be provided")
-	v.Check(len(tokenPlaintext) == 26, "token", "must be 26 bytes long")
+	v.Check(len(tokenPlaintext) == 6, "token", "must be 6 bytes long")
 }
 
 // Define the TokenModel type.
@@ -83,7 +108,7 @@ type TokenModel struct {
 // The New() method is a shortcut which creates a new Token struct and then inserts the
 // data in the tokens table.
 func (m TokenModel) New(userID int64, ttl time.Duration, scope string) (*Token, error) {
-	token, err := generateToken(userID, ttl, scope)
+	token, err := generateToken(userID, ttl, 6, scope)
 	if err != nil {
 		return nil, err
 	}
