@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"database/sql"
+	"expvar"
 	"flag"
 	_ "github.com/lib/pq"
 	"greenlight.abdulalsh.com/internal/data"
@@ -10,6 +11,7 @@ import (
 	"html/template"
 	"log/slog"
 	"os"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -66,6 +68,7 @@ type application struct {
 }
 
 func main() {
+
 	//instance of config struct
 	var cfg config
 	//read the value of the config
@@ -118,6 +121,23 @@ func main() {
 	logger.Info("database connection pool established with:", "maxOpenConns", cfg.db.maxOpenConns, "maxIdleConns", cfg.db.maxIdleConns, "maxIdleTime", cfg.db.maxIdleTime)
 	//declare instance of app strcut containg the config struct and logger
 	// Initialize a new session manager and configure the session lifetime.
+	// Publish a new "version" variable in the expvar handler containing our application
+	// version number (currently the constant "1.0.0").
+	expvar.NewString("version").Set(version)
+	// Publish the number of active goroutines.
+	expvar.Publish("goroutines", expvar.Func(func() any {
+		return runtime.NumGoroutine()
+	}))
+
+	// Publish the database connection pool statistics.
+	expvar.Publish("database", expvar.Func(func() any {
+		return db.Stats()
+	}))
+
+	// Publish the current Unix timestamp.
+	expvar.Publish("timestamp", expvar.Func(func() any {
+		return time.Now().Unix()
+	}))
 
 	cache, err := newTemplateCache()
 	if err != nil {
