@@ -9,6 +9,7 @@ import (
 	"greenlight.abdulalsh.com/internal/validator"
 	"net"
 	"net/http"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -241,4 +242,20 @@ func (app *application) requirePermission(code string, next http.HandlerFunc) ht
 		next.ServeHTTP(w, r)
 	}
 	return app.requireActivateduser(fn)
+}
+
+// since the access control allow origin header usually has one value (thats whats supported by browsers even though standard says we can send multiple
+// we will have a  list of supported origins, and if the origin is supported we echo it back, if not then we continue normally
+// because of htis we must set the Vary:origin response header to warn any caches that response may be diffrent based on the origin
+func (app *application) enableCORS(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Add("Vary", "Origin")
+		origin := r.Header.Get("Origin")
+		if origin != "" {
+			if slices.Contains(app.config.cors.trustedOrigins, origin) {
+				w.Header().Set("Access-Control-Allow-Origin", origin)
+			}
+		}
+		next.ServeHTTP(w, r)
+	})
 }
