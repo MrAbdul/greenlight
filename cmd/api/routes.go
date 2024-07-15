@@ -1,6 +1,7 @@
 package main
 
 import (
+	"expvar"
 	"github.com/julienschmidt/httprouter"
 	"greenlight.abdulalsh.com/internal/data"
 	"greenlight.abdulalsh.com/ui"
@@ -33,6 +34,6 @@ func (app *application) routes() http.Handler {
 	router.Handler(http.MethodPost, "/v1/users/activated", noSurf(http.HandlerFunc(app.activateUserHandler)))
 	router.Handler(http.MethodGet, "/v1/users/activate", noSurf(http.HandlerFunc(app.activateUserFormGetHandler)))
 	router.HandlerFunc(http.MethodPost, "/v1/tokens/authentication", app.createAuthenticationTokenHandler)
-
+	router.Handler(http.MethodGet, "/debug/vars", expvar.Handler())
 	return app.recoverPanic(app.enableCORS(app.rateLimit(app.authenticate(router))))
 }
