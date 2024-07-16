@@ -61,3 +61,15 @@ vendor:
 	go mod verify
 	@echo 'Vendoring dependencies...'
 	go mod vendor
+
+# ==================================================================================== #
+# BUILD
+# ==================================================================================== #
+
+## build/api: build the cmd/api application
+#It’s possible to reduce the binary size by around 25% by instructing the Go linker to strip symbol tables and DWARF debugging information from the binary. We can do this as part of the go build command by using the linker flag -ldflags="-s" as follows
+.PHONY: build/api
+build/api:
+	@echo 'Building cmd/api...'
+	go build -ldflags='-s' -o=./bin/api ./cmd/api
+	GOOS=linux GOARCH=amd64 go build -ldflags='-s' -o=./bin/linux_amd64/api ./cmd/api
