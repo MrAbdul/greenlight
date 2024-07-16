@@ -91,3 +91,16 @@ production/deploy/api:
 	rsync -P -e 'ssh -i ~/.ssh/id_rsaDigitalOcean' ./bin/linux_amd64/api greenlight@${production_host_ip}:~
 	rsync -rP -e 'ssh -i ~/.ssh/id_rsaDigitalOcean' --delete ./migrations greenlight@${production_host_ip}:~
 	ssh -i ~/.ssh/id_rsaDigitalOcean -t greenlight@${production_host_ip} 'migrate -path ~/migrations -database $$GREENLIGHT_DB_DSN up'
+
+## production/deploy/api: deploy the api to production
+.PHONY: production/deploy/api
+production/deploy/api:
+	rsync -P -e 'ssh -i ~/.ssh/id_rsaDigitalOcean' ./bin/linux_amd64/api greenlight@${production_host_ip}:~
+	rsync -rP -e 'ssh -i ~/.ssh/id_rsaDigitalOcean' --delete ./migrations greenlight@${production_host_ip}:~
+	rsync -P -e 'ssh -i ~/.ssh/id_rsaDigitalOcean' ./remote/production/api.service greenlight@${production_host_ip}:~
+	ssh -i ~/.ssh/id_rsaDigitalOcean -t greenlight@${production_host_ip} '\
+		migrate -path ~/migrations -database $$GREENLIGHT_DB_DSN up \
+		&& sudo mv ~/api.service /etc/systemd/system/ \
+		&& sudo systemctl enable api \
+		&& sudo systemctl restart api \
+		'
