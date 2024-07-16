@@ -4,10 +4,10 @@ import (
 	"errors"
 	"fmt"
 	"github.com/justinas/nosurf"
+	"github.com/tomasen/realip" // New import
 	"golang.org/x/time/rate"
 	"greenlight.abdulalsh.com/internal/data"
 	"greenlight.abdulalsh.com/internal/validator"
-	"net"
 	"net/http"
 	"slices"
 	"strings"
@@ -82,11 +82,7 @@ func (app *application) rateLimit(next http.Handler) http.Handler {
 		//only carry checks if rate limiting is enabled
 		if app.config.limiter.enabled {
 			//extract the clients ip address from the request
-			ip, _, err := net.SplitHostPort(r.RemoteAddr)
-			if err != nil {
-				app.serverErrorResponse(w, r, err)
-				return
-			}
+			ip := realip.RealIP(r)
 			//lock the mutex to prevent this code from being executed concurrently
 			mu.Lock()
 			//check if the ip already exists in the map, if not init a new rate limiter and add the ip address and limiter to it
