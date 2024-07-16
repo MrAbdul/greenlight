@@ -2,6 +2,9 @@
 include .envrc
 #I should also point out that positioning the help rule as the first thing in the Makefile is a deliberate move. If you run make without specifying a target then it will default to executing the first rule in the file.
 ## help: print this help message
+# ==================================================================================== #
+# HELPERS
+# ==================================================================================== #
 .PHONY: help
 help:
 	@echo 'Usage:'
@@ -10,6 +13,10 @@ help:
 .PHONY:confirm
 confirm:
 	@echo -n 'Are you sure? [y/N] ' && read ans && [ $${ans:-N} = y ]
+
+# ==================================================================================== #
+# DEVELOPMENT
+# ==================================================================================== #
 #A phony target is one that is not really the name of a file; rather it is just a name for a rule to be executed.
 ## run/api: run the cmd/api application
 .PHONY: run/api
@@ -32,3 +39,20 @@ db/migration/new: confirm
 db/migration/up: confirm
 	@echo 'Running up migrations...'
 	migrate -path ./migrations -database ${GREENLIGHT_DB_DSN} up
+
+# ==================================================================================== #
+# QUALITY CONTROL
+# ==================================================================================== #
+## audit: tidy dependencies and format, vet and test all code
+.PHONY: audit
+audit:
+	@echo 'Tidying and verifying module dependencies...'
+	go mod tidy
+	go mod verify
+	@echo 'Formatting code...'
+	go fmt ./...
+	@echo 'Vetting code...'
+	go vet ./...
+	staticcheck ./...
+	@echo 'Running tests...'
+	go test -race -vet=off ./...
