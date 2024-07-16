@@ -65,6 +65,8 @@ apt --yes install postgresql
 sudo -i -u postgres psql -c "CREATE DATABASE greenlight"
 sudo -i -u postgres psql -d greenlight -c "CREATE EXTENSION IF NOT EXISTS citext"
 sudo -i -u postgres psql -d greenlight -c "CREATE ROLE greenlight WITH LOGIN PASSWORD '${DB_PASSWORD}'"
+sudo -i -u postgres psql -d greenlight -c "alter database greenlight owner to greenlight;"
+sudo -i -u postgres psql -d greenlight -c "grant all privileges on database greenlight to greenlight;"
 
 # Add a DSN for connecting to the greenlight database to the system-wide environment
 # variables in the /etc/environment file.

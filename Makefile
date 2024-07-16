@@ -84,3 +84,10 @@ production_host_ip = '207.154.235.180'
 .PHONY: production/connect
 production/connect:
 	ssh -i ~/.ssh/id_rsaDigitalOcean greenlight@${production_host_ip}
+
+## production/deploy/api: deploy the api to production
+.PHONY: production/deploy/api
+production/deploy/api:
+	rsync -P -e 'ssh -i ~/.ssh/id_rsaDigitalOcean' ./bin/linux_amd64/api greenlight@${production_host_ip}:~
+	rsync -rP -e 'ssh -i ~/.ssh/id_rsaDigitalOcean' --delete ./migrations greenlight@${production_host_ip}:~
+	ssh -i ~/.ssh/id_rsaDigitalOcean -t greenlight@${production_host_ip} 'migrate -path ~/migrations -database $$GREENLIGHT_DB_DSN up'
