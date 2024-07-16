@@ -5,9 +5,11 @@ import (
 	"database/sql"
 	"expvar"
 	"flag"
+	"fmt"
 	_ "github.com/lib/pq"
 	"greenlight.abdulalsh.com/internal/data"
 	"greenlight.abdulalsh.com/internal/mailer"
+	"greenlight.abdulalsh.com/internal/vsc"
 	"html/template"
 	"log/slog"
 	"os"
@@ -17,9 +19,9 @@ import (
 	"time"
 )
 
-const (
+var (
 	//we will generate this automatically at build time, but for now we will just store the version number as hardcoded global const
-	version = "1.0.0"
+	version = vsc.Version()
 )
 
 // this will hold all the config settings for our app,
@@ -99,7 +101,16 @@ func main() {
 		cfg.cors.trustedOrigins = strings.Fields(val)
 		return nil
 	})
+
+	// Create a new version boolean flag with the default value of false.
+	displayVersion := flag.Bool("version", false, "Display version and exit")
 	flag.Parse()
+	// If the version flag value is true, then print out the version number and
+	// immediately exit.
+	if *displayVersion {
+		fmt.Printf("Version:\t%s\n", version)
+		os.Exit(0)
+	}
 
 	//init a new slog that writes log entries to stdout stream
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
