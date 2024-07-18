@@ -1,9 +1,3 @@
-# Set the email address that should be used to contact you if there is a problem with
-# your TLS certificates.
-{
-  email mrabdulrahmandev@gmail.com
-}
-greenlight.abdulalsh.com {
-  respond /debug/* "Not Permitted" 403
+http://207.154.235.180 {
   reverse_proxy localhost:4000
 }
