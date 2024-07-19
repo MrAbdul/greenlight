@@ -107,11 +107,6 @@ func ValidateUser(v *validator.Validator, user *User) {
 	}
 }
 
-// the user model(repo)
-var (
-	ErrDuplicateEmail = errors.New("duplicate email")
-)
-
 type UserModel struct {
 	DB *sql.DB
 }

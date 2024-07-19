@@ -1,7 +1,6 @@
 package data
 
 import (
-	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -12,7 +11,6 @@ type Runtime int32
 
 // implrmrny a marshaljson method on it so that it satisfies the json.marshler interface, this should return the json-encoded
 // value for the movie runtime (<runtime> mins)
-var ErrInvalidRuntimeFormat = errors.New("invalid runtime format")
 
 func (r *Runtime) MarshalJSON() ([]byte, error) {
 	//generate a string containg the movie runtime in the required format

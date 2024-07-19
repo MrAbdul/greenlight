@@ -44,7 +44,7 @@ func (app *application) routes() http.Handler {
 	router.HandlerFunc(http.MethodGet, categoriesV1+"/:id", app.getCategoryHandler)
 	router.HandlerFunc(http.MethodGet, categoriesV1, app.getCategoriesHandler)
 	router.HandlerFunc(http.MethodPost, categoriesV1, app.createCategoryHandler)
-	router.HandlerFunc(http.MethodPut, categoriesV1, app.addCategoryLanugageHandler)
+	router.HandlerFunc(http.MethodPut, categoriesV1, app.updateCategoryLanugageHandler)
 
 	router.HandlerFunc(http.MethodDelete, categoriesV1+"/:id", app.deleteCategoryHandler)
 	return app.recoverPanic(app.enableCORS(app.rateLimit(app.authenticate(router))))

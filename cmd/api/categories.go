@@ -66,6 +66,7 @@ func (app *application) getCategoriesHandler(w http.ResponseWriter, r *http.Requ
 func (app *application) createCategoryHandler(w http.ResponseWriter, r *http.Request) {
 	var input struct {
 		Title string `json:"title"`
+		Image string `json:"image"`
 	}
 	err := app.readJSON(w, r, &input)
 	if err != nil {
@@ -75,6 +76,7 @@ func (app *application) createCategoryHandler(w http.ResponseWriter, r *http.Req
 	category := &data.Category{
 		Title:    input.Title,
 		Language: "en",
+		Image:    input.Image,
 	}
 	v := validator.New()
 	data.ValidateCategory(v, category)
@@ -97,29 +99,43 @@ func (app *application) createCategoryHandler(w http.ResponseWriter, r *http.Req
 	}
 }
 
-func (app *application) addCategoryLanugageHandler(w http.ResponseWriter, r *http.Request) {
+func (app *application) updateCategoryLanugageHandler(w http.ResponseWriter, r *http.Request) {
 	var input struct {
 		Id       int64  `json:"id"`
 		Title    string `json:"title"`
 		Language string `json:"language"`
+		Image    string `json:"image"`
 	}
 	err := app.readJSON(w, r, &input)
 	if err != nil {
 		app.errorErrResponse(w, r, http.StatusBadRequest, err.Error())
 		return
 	}
-	category := &data.Category{
-		Title:    input.Title,
-		Language: input.Language,
-		ID:       input.Id,
+	//get the cat to set default image if image doesn't exists.
+	category, err := app.models.CategoryModel.Get(input.Id, "en")
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.notFoundResponse(w, r)
+			return
+		default:
+			app.serverErrorResponse(w, r, err)
+			return
+		}
 	}
+	category.Language = input.Language
+	category.Title = input.Title
+	if input.Image != "" {
+		category.Image = input.Image
+	}
+
 	v := validator.New()
 	data.ValidateCategory(v, category)
 	if !v.Valid() {
 		app.failedValidationResponse(w, r, v.Errors)
 		return
 	}
-	err = app.models.CategoryModel.AddCategoryLanguage(category)
+	err = app.models.CategoryModel.Update(category)
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrRecordNotFound):
@@ -145,6 +161,25 @@ func (app *application) addCategoryLanugageHandler(w http.ResponseWriter, r *htt
 
 // deleteCategoryHandler
 func (app *application) deleteCategoryHandler(w http.ResponseWriter, r *http.Request) {
-	//TODO:complete
-	app.writeJSON(w, http.StatusTeapot, envelope{"todo": "todo"}, nil)
+	id, err := app.readIDParam(r)
+	if err != nil {
+		app.notFoundResponse(w, r)
+		return
+	}
+	err = app.models.CategoryModel.Delete(id)
+
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.notFoundResponse(w, r)
+			return
+		default:
+			app.serverErrorResponse(w, r, err)
+			return
+		}
+	}
+	err = app.writeJSON(w, http.StatusOK, envelope{"message": "Category deleted"}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
 }
