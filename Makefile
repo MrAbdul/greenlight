@@ -30,13 +30,13 @@ db/psql:
 
 ## db/migrations/new name=$1: create a new database migration it has confirm target
 .PHONY:db/migration/new
-db/migration/new: confirm
+db/migration/new:# confirm
 	@echo 'Creating migration files for ${name}...'
 	migrate create -seq -ext=.sql -dir=./migrations ${name}
 
 ## db/migrations/up: apply all up database migrations  it has confirm target
 .PHONY:db/migration/up
-db/migration/up: confirm
+db/migration/up: #confirm
 	@echo 'Running up migrations...'
 	migrate -path ./migrations -database ${GREENLIGHT_DB_DSN} up
 

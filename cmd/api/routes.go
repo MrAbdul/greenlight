@@ -8,6 +8,10 @@ import (
 	"net/http"
 )
 
+const (
+	categoriesV1 = "/v1/categories"
+)
+
 func (app *application) routes() http.Handler {
 	//init a new httprouter
 	// now we use mux.handle function to register the file server as handler for all url paths that start with /static/
@@ -35,5 +39,13 @@ func (app *application) routes() http.Handler {
 	router.Handler(http.MethodGet, "/v1/users/activate", noSurf(http.HandlerFunc(app.activateUserFormGetHandler)))
 	router.HandlerFunc(http.MethodPost, "/v1/tokens/authentication", app.createAuthenticationTokenHandler)
 	router.Handler(http.MethodGet, "/debug/vars", expvar.Handler())
+
+	//categories
+	router.HandlerFunc(http.MethodGet, categoriesV1+"/:id", app.getCategoryHandler)
+	router.HandlerFunc(http.MethodGet, categoriesV1, app.getCategoriesHandler)
+	router.HandlerFunc(http.MethodPost, categoriesV1, app.createCategoryHandler)
+	router.HandlerFunc(http.MethodPut, categoriesV1, app.addCategoryLanugageHandler)
+
+	router.HandlerFunc(http.MethodDelete, categoriesV1+"/:id", app.deleteCategoryHandler)
 	return app.recoverPanic(app.enableCORS(app.rateLimit(app.authenticate(router))))
 }

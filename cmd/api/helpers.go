@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/julienschmidt/httprouter"
+	"greenlight.abdulalsh.com/internal/data"
 	"greenlight.abdulalsh.com/internal/validator"
 	"io"
 	"net/http"
@@ -28,6 +29,19 @@ func (app *application) readIDParam(r *http.Request) (int64, error) {
 	}
 
 	return id, nil
+}
+func (app *application) readLanguageHeader(r *http.Request) (string, *validator.Validator) {
+	lang := r.Header.Get("Accept-Language")
+	if lang == "" {
+		lang = "en" // default to English if no language is specified
+	} else {
+		// Extract the primary language from the header (e.g., "en-US" -> "en")
+		lang = strings.Split(lang, ",")[0]
+		lang = strings.Split(lang, "-")[0]
+	}
+	v := validator.New()
+	v.Check(validator.PermittedValues(lang, data.AllowedLanguages...), "language", lang+" is not supported")
+	return lang, v
 }
 
 // we define an envelope type to better represent our data
