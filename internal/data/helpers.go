@@ -18,4 +18,5 @@ var (
 	ErrRecordNotFound               = errors.New("record not found")
 	ErrEditConflict                 = errors.New("edit conflict")
 	ErrInvalidRuntimeFormat         = errors.New("invalid runtime format")
+	ErrCantDeleteDefaultCategory    = errors.New("can't delete default category")
 )

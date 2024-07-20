@@ -173,6 +173,9 @@ func (app *application) deleteCategoryHandler(w http.ResponseWriter, r *http.Req
 		case errors.Is(err, data.ErrRecordNotFound):
 			app.notFoundResponse(w, r)
 			return
+		case errors.Is(err, data.ErrCantDeleteDefaultCategory):
+			app.unableToDeleteDefault(w, r, data.ErrCantDeleteDefaultCategory.Error())
+			return
 		default:
 			app.serverErrorResponse(w, r, err)
 			return

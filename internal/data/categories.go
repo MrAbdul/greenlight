@@ -145,6 +145,9 @@ func (m CategoryModel) Delete(id int64) error {
 
 	result, err := m.DB.ExecContext(ctx, deleteQuery, id)
 	if err != nil {
+		if strings.Contains(err.Error(), "Cannot delete the default category") {
+			return ErrCantDeleteDefaultCategory
+		}
 		return err
 	}
 	rowsAffected, err := result.RowsAffected()
