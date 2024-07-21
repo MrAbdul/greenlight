@@ -16,7 +16,7 @@ create table category_translations
 );
 
 
-insert into languages (code, name) values
-                                        ('en', 'English'),
-                                        ('ar', 'Arabic');
+insert into languages (id, code, name) values
+                                        (1, 'en', 'English'),
+                                        (2, 'ar', 'Arabic');
 
