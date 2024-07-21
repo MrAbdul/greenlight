@@ -17,7 +17,7 @@ type Item struct {
 	ID         int64     `json:"id"`          // Unique integer ID for the item
 	CategoryID int64     `json:"category_id"` // Category ID for the item
 	CreatedAt  time.Time `json:"-"`           // Timestamp for when the item is added to our database
-	Name       string    `json:"name"`        // Item title
+	Name       string    `json:"name"`        // Item name
 	Image      string    `json:"image"`       // Item image
 	Language   string    `json:"language"`    // Language code
 }
@@ -39,6 +39,7 @@ const (
 	insertItemQuery            = `INSERT INTO items(category_id) VALUES ($1) RETURNING id, created_at`
 	insertItemTranslationQuery = `INSERT INTO item_translations (item_id, language_id, translation, image) VALUES ($1, (SELECT id FROM languages WHERE code = $2), $3, $4)`
 	upsertItemTranslationQuery = `INSERT INTO item_translations (item_id, language_id, translation, image) VALUES ($1, (SELECT id FROM languages WHERE code = $2), $3, $4) ON CONFLICT (item_id, language_id) DO UPDATE SET translation = EXCLUDED.translation, image = EXCLUDED.image`
+	updateCategoryId           = "update items set category_id = $1 where id = $2"
 	getItemQuery               = `
 		SELECT
 			i.id,
@@ -87,14 +88,35 @@ func (m ItemModel) Insert(item *Item) error {
 	return err
 }
 
-func (m ItemModel) UpsertTranslation(item *Item) error {
+func (m ItemModel) Update(item *Item, updateCategory bool) error {
 	ctx, cancel := createContext()
 	defer cancel()
-	_, err := m.DB.ExecContext(ctx, upsertItemTranslationQuery, item.ID, item.Language, item.Name, item.Image)
+	tx, err := m.DB.BeginTx(ctx, nil)
 	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	_, err = tx.Exec(upsertItemTranslationQuery, item.ID, item.Language, item.Name, item.Image)
+	if err != nil {
+
 		if strings.Contains(err.Error(), `item_translations_item_id_language_id_key`) && strings.Contains(err.Error(), "duplicate") {
 			return ErrDuplicateItemTranslation
 		}
+
+		return err
+	}
+	if updateCategory {
+
+		_, err = tx.Exec(updateCategoryId, item.CategoryID, item.ID)
+		if err != nil {
+			if err.Error() == "pq: insert or update on table \"items\" violates foreign key constraint \"items_category_id_fkey\"" {
+				return ErrCategoryDoesntExist
+			}
+			return err
+		}
+	}
+	err = tx.Commit()
+	if err != nil {
 		return err
 	}
 	return nil

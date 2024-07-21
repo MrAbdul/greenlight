@@ -108,13 +108,15 @@ func (app *application) updateItemHandler(w http.ResponseWriter, r *http.Request
 		Image      string `json:"image"`
 		Language   string `json:"language"`
 	}
+	var updateCategory = false
 	err := app.readJSON(w, r, &input)
 	if err != nil {
 		app.errorErrResponse(w, r, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	item, err := app.models.ItemModel.Get(input.ID, input.Language)
+	//get the default items
+	item, err := app.models.ItemModel.Get(input.ID, "en")
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrRecordNotFound):
@@ -126,9 +128,14 @@ func (app *application) updateItemHandler(w http.ResponseWriter, r *http.Request
 		}
 	}
 
-	item.CategoryID = input.CategoryID
+	if input.CategoryID != 0 {
+		updateCategory = true
+		item.CategoryID = input.CategoryID
+	}
+	if input.Image != "" {
+		item.Image = input.Image
+	}
 	item.Name = input.Name
-	item.Image = input.Image
 	item.Language = input.Language
 
 	v := validator.New()
@@ -138,11 +145,14 @@ func (app *application) updateItemHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	err = app.models.ItemModel.UpsertTranslation(item)
+	err = app.models.ItemModel.Update(item, updateCategory)
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrDuplicateItemTranslation):
 			v.AddError("item", "duplicate item translation, please update item")
+			app.failedValidationResponse(w, r, v.Errors)
+		case errors.Is(err, data.ErrCategoryDoesntExist):
+			v.AddError("item", "referenced category does not exist")
 			app.failedValidationResponse(w, r, v.Errors)
 		default:
 			app.serverErrorResponse(w, r, err)

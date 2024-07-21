@@ -19,4 +19,5 @@ var (
 	ErrEditConflict                 = errors.New("edit conflict")
 	ErrInvalidRuntimeFormat         = errors.New("invalid runtime format")
 	ErrCantDeleteDefaultCategory    = errors.New("can't delete default category")
+	ErrCategoryDoesntExist          = errors.New("category does not exist")
 )
