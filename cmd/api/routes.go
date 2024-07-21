@@ -10,6 +10,7 @@ import (
 
 const (
 	categoriesV1 = "/v1/categories"
+	itemsV1      = "/v1/items"
 )
 
 func (app *application) routes() http.Handler {
@@ -45,7 +46,14 @@ func (app *application) routes() http.Handler {
 	router.HandlerFunc(http.MethodGet, categoriesV1, app.getCategoriesHandler)
 	router.HandlerFunc(http.MethodPost, categoriesV1, app.createCategoryHandler)
 	router.HandlerFunc(http.MethodPut, categoriesV1, app.updateCategoryLanugageHandler)
-
 	router.HandlerFunc(http.MethodDelete, categoriesV1+"/:id", app.deleteCategoryHandler)
+
+	//Items
+	router.HandlerFunc(http.MethodGet, itemsV1+"/:id", app.getItemHandler)
+	router.HandlerFunc(http.MethodGet, itemsV1, app.getItemsHandler)
+	router.HandlerFunc(http.MethodPost, itemsV1, app.createItemHandler)
+	router.HandlerFunc(http.MethodPut, itemsV1, app.updateItemHandler)
+	router.HandlerFunc(http.MethodDelete, itemsV1+"/:id", app.deleteItemHandler)
+
 	return app.recoverPanic(app.enableCORS(app.rateLimit(app.authenticate(router))))
 }
