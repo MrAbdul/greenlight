@@ -30,6 +30,19 @@ func (app *application) readIDParam(r *http.Request) (int64, error) {
 
 	return id, nil
 }
+
+func (app *application) readStringParam(r *http.Request, param string) (*string, error) {
+	//httprouter will store any interpolated url parameter in the request context. we can use the paramsfromcontext to retrive a slice containg these parameter names and values
+	params := httprouter.ParamsFromContext(r.Context())
+
+	//we convert the id parameter to an in of base 10 and 64 bits in size, if we can't or less than one we surve a notfound
+	p := params.ByName(param)
+	if p == "" {
+		return nil, errors.New("invalid parameter")
+	}
+	return &p, nil
+}
+
 func (app *application) readLanguageHeader(r *http.Request) (string, *validator.Validator) {
 	lang := r.Header.Get("Accept-Language")
 	if lang == "" {

@@ -117,6 +117,7 @@ func (app *application) updateItemHandler(w http.ResponseWriter, r *http.Request
 
 	//get the default items
 	item, err := app.models.ItemModel.Get(input.ID, "en")
+	item.Category = ""
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrRecordNotFound):
@@ -190,4 +191,30 @@ func (app *application) deleteItemHandler(w http.ResponseWriter, r *http.Request
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
+}
+
+func (app *application) getUntranslatedHandler(w http.ResponseWriter, r *http.Request) {
+	lang, err := app.readStringParam(r, "lang")
+	v := validator.New()
+
+	if err != nil {
+		v.AddError("lang", "invalid language")
+		app.failedValidationResponse(w, r, v.Errors)
+		return
+	}
+	v.Check(validator.PermittedValues(*lang, data.AllowedLanguages...), "lang", *lang+" invalid language")
+	if !v.Valid() {
+		app.failedValidationResponse(w, r, v.Errors)
+		return
+	}
+	untranslated, err := app.models.ItemModel.GetAllUntranslated(*lang)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+	err = app.writeJSON(w, http.StatusOK, envelope{"items": untranslated}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+
 }

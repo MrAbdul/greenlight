@@ -16,10 +16,11 @@ var (
 type Item struct {
 	ID         int64     `json:"id"`          // Unique integer ID for the item
 	CategoryID int64     `json:"category_id"` // Category ID for the item
-	CreatedAt  time.Time `json:"-"`           // Timestamp for when the item is added to our database
-	Name       string    `json:"name"`        // Item name
-	Image      string    `json:"image"`       // Item image
-	Language   string    `json:"language"`    // Language code
+	Category   string    `json:"category,omitempty"`
+	CreatedAt  time.Time `json:"-"`        // Timestamp for when the item is added to our database
+	Name       string    `json:"name"`     // Item name
+	Image      string    `json:"image"`    // Item image
+	Language   string    `json:"language"` // Language code
 }
 
 // ValidateItem validates the item fields.
@@ -42,20 +43,24 @@ const (
 	updateCategoryId           = "update items set category_id = $1 where id = $2"
 	getItemQuery               = `
 		SELECT
-			i.id,
-			i.category_id,
-			i.created_at,
-			it.translation AS title,
-			it.image,
-			l.code AS language
-		FROM
-			items i
-		JOIN
-			item_translations it ON i.id = it.item_id
-		JOIN
-			languages l ON it.language_id = l.id
-		WHERE
-			i.id = $1 AND l.code = $2`
+    i.id,
+    i.category_id,
+    i.created_at,
+    it.translation AS title,
+    it.image,
+    l.code AS language,
+    ct.translation AS translation
+FROM
+    items i
+        JOIN
+    item_translations it ON i.id = it.item_id
+        JOIN
+    languages l ON it.language_id = l.id
+        JOIN
+        category_translations ct ON ct.category_id = i.category_id and ct.language_id=it.language_id
+WHERE
+    i.id = $1 AND l.code = $2`
+
 	getAllItemsQuery = `
 		SELECT
 			i.id,
@@ -63,13 +68,17 @@ const (
 			i.created_at,
 			it.translation AS title,
 			it.image,
-			l.code AS language
+			l.code AS language,
+		    ct.translation AS translation
+
 		FROM
 			items i
 		JOIN
 			item_translations it ON i.id = it.item_id
 		JOIN
 			languages l ON it.language_id = l.id
+		JOIN
+        category_translations ct ON ct.category_id = i.category_id and ct.language_id=it.language_id
 		WHERE
 			l.code = $1`
 	deleteItemQuery = `DELETE FROM items WHERE id = $1`
@@ -130,7 +139,7 @@ func (m ItemModel) Get(id int64, language string) (*Item, error) {
 	item := Item{}
 	ctx, cancel := createContext()
 	defer cancel()
-	err := m.DB.QueryRowContext(ctx, getItemQuery, id, language).Scan(&item.ID, &item.CategoryID, &item.CreatedAt, &item.Name, &item.Image, &item.Language)
+	err := m.DB.QueryRowContext(ctx, getItemQuery, id, language).Scan(&item.ID, &item.CategoryID, &item.CreatedAt, &item.Name, &item.Image, &item.Language, &item.Category)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrRecordNotFound
@@ -153,7 +162,7 @@ func (m ItemModel) GetAll(language string) ([]Item, error) {
 	var items []Item
 	for rows.Next() {
 		var item Item
-		if err := rows.Scan(&item.ID, &item.CategoryID, &item.CreatedAt, &item.Name, &item.Image, &item.Language); err != nil {
+		if err := rows.Scan(&item.ID, &item.CategoryID, &item.CreatedAt, &item.Name, &item.Image, &item.Language, &item.Category); err != nil {
 			return nil, err
 		}
 		items = append(items, item)
@@ -183,4 +192,46 @@ func (m ItemModel) Delete(id int64) error {
 		return ErrRecordNotFound
 	}
 	return nil
+}
+func (m ItemModel) GetAllUntranslated(lang string) ([]Item, error) {
+
+	stmt := `
+		WITH EnglishLanguage AS (
+    SELECT id FROM public.languages WHERE code = 'en'
+)
+SELECT
+    i.id,
+    i.category_id,
+    i.created_at,
+    COALESCE(it.translation, 'Default Translation Missing') AS name,
+    COALESCE(it.image, 'Default Image URL') AS image
+FROM public.items i
+         LEFT JOIN public.item_translations it ON i.id = it.item_id AND it.language_id = (SELECT id FROM EnglishLanguage)
+WHERE NOT EXISTS (
+    SELECT 1 FROM public.item_translations WHERE item_id = i.id AND language_id = (SELECT id FROM languages where code=$1)
+);`
+	ctx, cancel := createContext()
+	defer cancel()
+
+	rows, err := m.DB.QueryContext(ctx, stmt, lang)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var items []Item
+	for rows.Next() {
+		var item Item
+		if err := rows.Scan(&item.ID, &item.CategoryID, &item.CreatedAt, &item.Name, &item.Image); err != nil {
+			return nil, err
+		}
+		items = append(items, item)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return items, nil
+
 }

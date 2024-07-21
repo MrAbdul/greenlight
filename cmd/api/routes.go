@@ -54,6 +54,7 @@ func (app *application) routes() http.Handler {
 	router.HandlerFunc(http.MethodPost, itemsV1, app.createItemHandler)
 	router.HandlerFunc(http.MethodPut, itemsV1, app.updateItemHandler)
 	router.HandlerFunc(http.MethodDelete, itemsV1+"/:id", app.deleteItemHandler)
+	router.HandlerFunc(http.MethodGet, itemsV1+"untranslated/:lang", app.getUntranslatedHandler)
 
 	return app.recoverPanic(app.enableCORS(app.rateLimit(app.authenticate(router))))
 }
